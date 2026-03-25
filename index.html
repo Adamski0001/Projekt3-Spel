@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Hissimulation</title>
+
+    <link rel="stylesheet" href="style.css">
+    
+    <style> 
+        
+        /* button stylin g*/
+        .btn-primary,
+        .btn-secondary,
+        .btn-tertiary {
+            all: unset;
+            
+            display: grid;
+            place-content: center;
+
+            background-color: transparent;
+            color: rgb(4, 49, 63);
+            
+            font-size: 16px;
+            
+            cursor: pointer;
+            
+            font: inherit;
+            font-weight: 500;
+            
+            padding: 0.5rem 1rem;
+            
+            cursor: pointer;
+
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        .btn-primary:hover,
+        .btn-secondary:hover {
+            background-color: rgb(226, 239, 244);
+        }
+
+        .btn-tertiary {
+            font-size: 0.8rem;
+            border: none;
+            padding: 0.5rem 0rem;
+        }
+
+        .btn-tertiary:hover {
+            color: lightblue;
+        }
+
+        .btn-primary:active,
+        .btn-secondary:active {
+            background-color: slategray;
+            color: white;
+
+        }
+
+        .pushed {
+            background-color: lightcyan;
+        }
+    </style>
+
+    <script src="script.js" defer></script>
+</head>
+
+<body>
+    <h1>Simulation: Hiss</h1>
+    <div class="elevator-container">
+        <div class="flex-column">
+            <div class="floor-buttons">
+                <!-- Buttons inside the elevator -->
+                <span class="caption">Inre hisspanel</span>
+                <div class="panel">
+                    <button class="btn-secondary" data-floor="9">9</button>
+                    <button class="btn-secondary" data-floor="10">10</button>
+                    <button class="btn-secondary" data-floor="7">7</button>
+                    <button class="btn-secondary" data-floor="8">8</button>
+                    <button class="btn-secondary" data-floor="5">5</button>
+                    <button class="btn-secondary" data-floor="6">6</button>
+                    <button class="btn-secondary" data-floor="3">3</button>
+                    <button class="btn-secondary" data-floor="4">4</button>
+                    <button class="btn-secondary" data-floor="1">1</button>
+                    <button class="btn-secondary" data-floor="2">2</button>
+                </div>
+            </div>
+            <div>
+                <!-- Debug display för hissen -->
+                <div class="caption-layout">
+                    <span class="caption">Meddelanden</span>
+                    <button class="btn-tertiary" id="btn-reset-display">Sudda</button>
+                </div>
+                <span class="elevator-display"></span>
+                
+            </div>
+        </div>
+        <div class="flex-layout grid-col-span-2">
+            <div class="elevator-shaft">
+                <div id="elevator" class="elevator">
+                    <div class="door door-left open"></div>
+                    <div class="door door-right open"></div>
+                    <svg class="person" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 100" width="20" height="40">
+                        <!-- Head -->
+                        <circle cx="25" cy="15" r="10" fill="white" />
+                        <!-- Body -->
+                        <polygon points="15,30 35,30 25,70" fill="white" />
+                        <!-- Legs -->
+                        <polygon points="15,70 20,100 25,70 30,100 35,70" fill="white" />
+                    </svg>
+                </div>
+            </div>
+            <div class="floors">
+                <!-- Call buttons on each floor -->
+                <div class="floor">
+                    <span>Våning 10</span>
+                    <button class="btn-secondary" data-floor="10">Hit</button>
+                </div>
+                <div class="floor">
+                    <span>Våning 9</span>
+                    <button class="btn-secondary" data-floor="9">Hit</button>
+                </div>
+                <div class="floor">
+                    <span>Våning 8</span>
+                    <button class="btn-secondary" data-floor="8">Hit</button>
+                </div>
+                <div class="floor">
+                    <span>Våning 7</span>
+                    <button class="btn-secondary" data-floor="7">Hit</button>
+                </div>
+                <div class="floor">
+                    <span>Våning 6</span>
+                    <button class="btn-secondary" data-floor="6">Hit</button>
+                </div>
+                <div class="floor">
+                    <span>Våning 5</span>
+                    <button class="btn-secondary" data-floor="5">Hit</button>
+                </div>
+                <div class="floor">
+                    <span>Våning 4</span>
+                    <button class="btn-secondary" data-floor="4">Hit</button>
+                </div>
+                <div class="floor">
+                    <span>Våning 3</span>
+                    <button class="btn-secondary" data-floor="3">Hit</button>
+                </div>
+                <div class="floor">
+                    <span>Våning 2</span>
+                    <button class="btn-secondary" data-floor="2">Hit</button>
+                </div>
+                <div class="floor">
+                    <span>Våning 1</span>
+                    <button class="btn-secondary" data-floor="1">Hit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
