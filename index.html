@@ -75,6 +75,10 @@
             <div class="floor-buttons">
                 <!-- Buttons inside the elevator -->
                 <span class="caption">Inre hisspanel</span>
+                <div class="floor-indicator">
+                    <span class="floor-number">1</span>
+                    <span class="floor-direction">–</span>
+                </div>
                 <div class="panel">
                     <button class="btn-secondary" data-floor="9">9</button>
                     <button class="btn-secondary" data-floor="10">10</button>
@@ -114,46 +118,76 @@
                 </div>
             </div>
             <div class="floors">
-                <!-- Call buttons on each floor -->
+                <!-- Kallknappar på varje våning (upp/ned) -->
                 <div class="floor">
                     <span>Våning 10</span>
-                    <button class="btn-secondary" data-floor="10">Hit</button>
+                    <div class="call-buttons">
+                        <span class="call-placeholder"></span>
+                        <button class="btn-secondary" data-floor="10" data-direction="down">▼</button>
+                    </div>
                 </div>
                 <div class="floor">
                     <span>Våning 9</span>
-                    <button class="btn-secondary" data-floor="9">Hit</button>
+                    <div class="call-buttons">
+                        <button class="btn-secondary" data-floor="9" data-direction="up">▲</button>
+                        <button class="btn-secondary" data-floor="9" data-direction="down">▼</button>
+                    </div>
                 </div>
                 <div class="floor">
                     <span>Våning 8</span>
-                    <button class="btn-secondary" data-floor="8">Hit</button>
+                    <div class="call-buttons">
+                        <button class="btn-secondary" data-floor="8" data-direction="up">▲</button>
+                        <button class="btn-secondary" data-floor="8" data-direction="down">▼</button>
+                    </div>
                 </div>
                 <div class="floor">
                     <span>Våning 7</span>
-                    <button class="btn-secondary" data-floor="7">Hit</button>
+                    <div class="call-buttons">
+                        <button class="btn-secondary" data-floor="7" data-direction="up">▲</button>
+                        <button class="btn-secondary" data-floor="7" data-direction="down">▼</button>
+                    </div>
                 </div>
                 <div class="floor">
                     <span>Våning 6</span>
-                    <button class="btn-secondary" data-floor="6">Hit</button>
+                    <div class="call-buttons">
+                        <button class="btn-secondary" data-floor="6" data-direction="up">▲</button>
+                        <button class="btn-secondary" data-floor="6" data-direction="down">▼</button>
+                    </div>
                 </div>
                 <div class="floor">
                     <span>Våning 5</span>
-                    <button class="btn-secondary" data-floor="5">Hit</button>
+                    <div class="call-buttons">
+                        <button class="btn-secondary" data-floor="5" data-direction="up">▲</button>
+                        <button class="btn-secondary" data-floor="5" data-direction="down">▼</button>
+                    </div>
                 </div>
                 <div class="floor">
                     <span>Våning 4</span>
-                    <button class="btn-secondary" data-floor="4">Hit</button>
+                    <div class="call-buttons">
+                        <button class="btn-secondary" data-floor="4" data-direction="up">▲</button>
+                        <button class="btn-secondary" data-floor="4" data-direction="down">▼</button>
+                    </div>
                 </div>
                 <div class="floor">
                     <span>Våning 3</span>
-                    <button class="btn-secondary" data-floor="3">Hit</button>
+                    <div class="call-buttons">
+                        <button class="btn-secondary" data-floor="3" data-direction="up">▲</button>
+                        <button class="btn-secondary" data-floor="3" data-direction="down">▼</button>
+                    </div>
                 </div>
                 <div class="floor">
                     <span>Våning 2</span>
-                    <button class="btn-secondary" data-floor="2">Hit</button>
+                    <div class="call-buttons">
+                        <button class="btn-secondary" data-floor="2" data-direction="up">▲</button>
+                        <button class="btn-secondary" data-floor="2" data-direction="down">▼</button>
+                    </div>
                 </div>
                 <div class="floor">
                     <span>Våning 1</span>
-                    <button class="btn-secondary" data-floor="1">Hit</button>
+                    <div class="call-buttons">
+                        <button class="btn-secondary" data-floor="1" data-direction="up">▲</button>
+                        <span class="call-placeholder"></span>
+                    </div>
                 </div>
             </div>
         </div>

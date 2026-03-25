@@ -1,75 +1,250 @@
+// DOM-element
 const elevator = document.getElementById('elevator');
-const buttons = document.querySelectorAll('[data-floor]');
-const btnResetDisplay = document.getElementById('btn-reset-display');
 const display = document.querySelector('.elevator-display');
+const btnResetDisplay = document.getElementById('btn-reset-display');
 const leftDoor = document.querySelector('.door-left');
 const rightDoor = document.querySelector('.door-right');
+const floorNumberEl = document.querySelector('.floor-number');
+const floorDirectionEl = document.querySelector('.floor-direction');
 
+// Konstanter
 const totalFloors = 10;
 const floorHeight = 50;
-let activeFloor = 1;
-let isMoving = false; // Prevent overlapping actions
 
-// Function to move the elevator
-function moveToFloor(floor, callback) {
-  const targetPosition = (floor - 1) * floorHeight;
-  elevator.style.transition = "transform 2s ease-in-out";
-  elevator.style.transform = `translateY(-${targetPosition}px)`; // Move the elevator
-  setTimeout(callback, 2000); // Call the callback after the elevator finishes moving
+// Hissens tillstånd
+let currentFloor = 1;
+let direction = 'idle'; // 'up', 'down', 'idle'
+let destinations = new Set(); // Valda våningar inifrån hissen
+let upCalls = new Set(); // Våningar som kallar uppåt
+let downCalls = new Set(); // Våningar som kallar nedåt
+let isProcessing = false;
+
+// --- Hjälpfunktioner ---
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Function to update the display
-function updateDisplay(message, floor = "") {
-  display.innerHTML = `${message} ${floor}<br>` + display.innerHTML;
+function updateDisplay(message) {
+  display.innerHTML = message + '<br>' + display.innerHTML;
 }
 
-// Function to close the doors
-function closeDoors(callback) {
-  leftDoor.classList.remove("open");
-  rightDoor.classList.remove("open");
-  setTimeout(callback, 1000); // Wait for the door closing animation to complete
+function updateFloorIndicator() {
+  floorNumberEl.textContent = currentFloor;
+  if (direction === 'up') floorDirectionEl.textContent = '▲';
+  else if (direction === 'down') floorDirectionEl.textContent = '▼';
+  else floorDirectionEl.textContent = '–';
 }
 
-// Function to open the doors
-function openDoors(callback) {
-  leftDoor.classList.add("open");
-  rightDoor.classList.add("open");
-  setTimeout(callback, 1000); // Wait for the door opening animation to complete
+// --- Dörranimationer ---
+
+function closeDoors() {
+  return new Promise(resolve => {
+    leftDoor.classList.remove('open');
+    rightDoor.classList.remove('open');
+    setTimeout(resolve, 1000);
+  });
 }
 
-buttons.forEach(button => {
-  button.addEventListener("click", () => {
-    const floor = parseInt(button.getAttribute("data-floor"));
+function openDoors() {
+  return new Promise(resolve => {
+    leftDoor.classList.add('open');
+    rightDoor.classList.add('open');
+    setTimeout(resolve, 1000);
+  });
+}
 
-    // Proceed if it's a valid floor, different from the current, and no movement is in progress
-    if (floor >= 1 && floor <= totalFloors && floor !== activeFloor && !isMoving) {
-      isMoving = true; // Lock actions while moving
-      button.classList.add('pushed');
-      updateDisplay("Åker till våning:", floor);
+// --- Flytta en våning ---
 
-      closeDoors(() => {    
-        moveToFloor(floor, () => {
-          updateDisplay("Du är på våning:", floor);
-          activeFloor = floor; // Update current floor
-          openDoors(() => {
-            button.classList.remove('pushed');
-            isMoving = false; // Unlock actions after moving
-          });
-        });
-      });
+function moveOneFloor(targetFloor) {
+  return new Promise(resolve => {
+    const targetPos = (targetFloor - 1) * floorHeight;
+    elevator.style.transition = 'transform 0.5s linear';
+    elevator.style.transform = `translateY(-${targetPos}px)`;
+    setTimeout(() => {
+      currentFloor = targetFloor;
+      updateFloorIndicator();
+      resolve();
+    }, 500);
+  });
+}
 
-    } else if (floor === activeFloor) {
-      updateDisplay("Du är redan på våning:", floor);
+// --- Kontrollera stopp ---
 
-    } else if (isMoving) {
-      updateDisplay("Hissen rör sig, vänligen vänta.");
+function hasStopsAbove() {
+  for (const f of destinations) if (f > currentFloor) return true;
+  for (const f of upCalls) if (f > currentFloor) return true;
+  for (const f of downCalls) if (f > currentFloor) return true;
+  return false;
+}
 
-    } else {
-      updateDisplay("Ogiltig våning:", floor);
+function hasStopsBelow() {
+  for (const f of destinations) if (f < currentFloor) return true;
+  for (const f of upCalls) if (f < currentFloor) return true;
+  for (const f of downCalls) if (f < currentFloor) return true;
+  return false;
+}
+
+function hasAnyStops() {
+  return destinations.size > 0 || upCalls.size > 0 || downCalls.size > 0;
+}
+
+function shouldStopHere() {
+  // Stopp om det är en destination inifrån hissen
+  if (destinations.has(currentFloor)) return true;
+  // Stopp om någon på denna våning vill åka i samma riktning
+  if (direction === 'up' && upCalls.has(currentFloor)) return true;
+  if (direction === 'down' && downCalls.has(currentFloor)) return true;
+  // Vid vändpunkt: plocka upp även motsatt riktning
+  if (direction === 'up' && !hasStopsAbove() && downCalls.has(currentFloor)) return true;
+  if (direction === 'down' && !hasStopsBelow() && upCalls.has(currentFloor)) return true;
+  return false;
+}
+
+// Rensa stopp på aktuell våning och uppdatera knappar
+function clearStopHere() {
+  const floor = currentFloor;
+
+  if (destinations.has(floor)) {
+    destinations.delete(floor);
+    const btn = document.querySelector(`.panel [data-floor="${floor}"]`);
+    if (btn) btn.classList.remove('pushed');
+  }
+
+  if (direction === 'up' && upCalls.has(floor)) {
+    upCalls.delete(floor);
+    const btn = document.querySelector(`.floor [data-floor="${floor}"][data-direction="up"]`);
+    if (btn) btn.classList.remove('pushed');
+  }
+
+  if (direction === 'down' && downCalls.has(floor)) {
+    downCalls.delete(floor);
+    const btn = document.querySelector(`.floor [data-floor="${floor}"][data-direction="down"]`);
+    if (btn) btn.classList.remove('pushed');
+  }
+
+  // Vändpunkt: rensa motsatt riktning också
+  if (direction === 'up' && !hasStopsAbove() && downCalls.has(floor)) {
+    downCalls.delete(floor);
+    const btn = document.querySelector(`.floor [data-floor="${floor}"][data-direction="down"]`);
+    if (btn) btn.classList.remove('pushed');
+  }
+  if (direction === 'down' && !hasStopsBelow() && upCalls.has(floor)) {
+    upCalls.delete(floor);
+    const btn = document.querySelector(`.floor [data-floor="${floor}"][data-direction="up"]`);
+    if (btn) btn.classList.remove('pushed');
+  }
+}
+
+// --- Stanna på aktuell våning ---
+
+async function stopAtCurrentFloor() {
+  clearStopHere();
+  updateDisplay('Stannar på våning ' + currentFloor);
+  await openDoors();
+  await delay(2000);
+  if (hasAnyStops()) {
+    await closeDoors();
+  }
+}
+
+// --- Huvudloop för hissen (SCAN-algoritm) ---
+
+async function processElevator() {
+  if (isProcessing) return;
+  isProcessing = true;
+
+  await closeDoors();
+
+  while (hasAnyStops()) {
+    // Uppdatera riktning
+    if (direction === 'up' && !hasStopsAbove()) {
+      direction = hasStopsBelow() ? 'down' : 'idle';
+    } else if (direction === 'down' && !hasStopsBelow()) {
+      direction = hasStopsAbove() ? 'up' : 'idle';
+    } else if (direction === 'idle') {
+      if (hasStopsAbove()) direction = 'up';
+      else if (hasStopsBelow()) direction = 'down';
     }
+
+    updateFloorIndicator();
+
+    if (direction === 'idle') break;
+
+    // Kontrollera aktuell våning (t.ex. efter riktningsbyte)
+    if (shouldStopHere()) {
+      await stopAtCurrentFloor();
+      continue;
+    }
+
+    // Flytta en våning i aktuell riktning
+    const nextFloor = direction === 'up' ? currentFloor + 1 : currentFloor - 1;
+    if (nextFloor < 1 || nextFloor > totalFloors) {
+      direction = direction === 'up' ? 'down' : 'up';
+      continue;
+    }
+
+    await moveOneFloor(nextFloor);
+
+    if (shouldStopHere()) {
+      await stopAtCurrentFloor();
+    }
+  }
+
+  // Hissen är ledig
+  direction = 'idle';
+  updateFloorIndicator();
+  leftDoor.classList.add('open');
+  rightDoor.classList.add('open');
+  isProcessing = false;
+}
+
+// --- Knapplyssnare: Inre panel ---
+
+document.querySelectorAll('.panel [data-floor]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const floor = parseInt(btn.dataset.floor);
+
+    if (floor === currentFloor && !isProcessing) {
+      updateDisplay('Du är redan på våning ' + floor);
+      return;
+    }
+    if (destinations.has(floor)) return;
+
+    destinations.add(floor);
+    btn.classList.add('pushed');
+    updateDisplay('Våning ' + floor + ' vald i hissen');
+    processElevator();
   });
 });
 
+// --- Knapplyssnare: Våningsknapparna (upp/ned) ---
+
+document.querySelectorAll('.floor [data-direction]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const floor = parseInt(btn.dataset.floor);
+    const dir = btn.dataset.direction;
+
+    if (floor === currentFloor && !isProcessing) {
+      updateDisplay('Hissen är redan på våning ' + floor);
+      return;
+    }
+
+    const callSet = dir === 'up' ? upCalls : downCalls;
+    if (callSet.has(floor)) return;
+
+    callSet.add(floor);
+    btn.classList.add('pushed');
+    updateDisplay('Våning ' + floor + ' kallar (' + (dir === 'up' ? '▲' : '▼') + ')');
+    processElevator();
+  });
+});
+
+// --- Sudda display ---
+
 btnResetDisplay.addEventListener('click', () => {
-  display.innerHTML = "";
-})
+  display.innerHTML = '';
+});
+
+// --- Initiera ---
+updateFloorIndicator();
