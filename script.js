@@ -19,7 +19,7 @@ let upCalls = new Set(); // Våningar som kallar uppåt
 let downCalls = new Set(); // Våningar som kallar nedåt
 let isProcessing = false;
 
-// --- Hjälpfunktioner ---
+// Hjälpfunktioner 
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -36,7 +36,7 @@ function updateFloorIndicator() {
   else floorDirectionEl.textContent = '–';
 }
 
-// --- Dörranimationer ---
+// Dörranimationer 
 
 function closeDoors() {
   return new Promise(resolve => {
@@ -54,7 +54,7 @@ function openDoors() {
   });
 }
 
-// --- Flytta en våning ---
+// Flytta en våning 
 
 function moveOneFloor(targetFloor) {
   return new Promise(resolve => {
@@ -69,7 +69,7 @@ function moveOneFloor(targetFloor) {
   });
 }
 
-// --- Kontrollera stopp ---
+// Kontrollera stopp 
 
 function hasStopsAbove() {
   for (const f of destinations) if (f > currentFloor) return true;
@@ -136,7 +136,7 @@ function clearStopHere() {
   }
 }
 
-// --- Stanna på aktuell våning ---
+// WStanna på aktuell våning 
 
 async function stopAtCurrentFloor() {
   clearStopHere();
@@ -150,8 +150,7 @@ async function stopAtCurrentFloor() {
     await closeDoors();
   }
 }
-
-// --- Huvudloop för hissen (SCAN-algoritm) ---
+// Huvudloop för hissen (SCAN-algoritm) 
 
 async function processElevator() {
   if (isProcessing) return;
@@ -202,7 +201,7 @@ async function processElevator() {
   isProcessing = false;
 }
 
-// --- Knapplyssnare: Inre panel ---
+// Knapplyssnare: Inre panel 
 
 document.querySelectorAll('.panel [data-floor]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -221,7 +220,7 @@ document.querySelectorAll('.panel [data-floor]').forEach(btn => {
   });
 });
 
-// --- Knapplyssnare: Våningsknapparna (upp/ned) ---
+// Knapplyssnare: Våningsknapparna (upp/ned) 
 
 document.querySelectorAll('.floor [data-direction]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -243,11 +242,11 @@ document.querySelectorAll('.floor [data-direction]').forEach(btn => {
   });
 });
 
-// --- Sudda display ---
+// Sudda display 
 
 btnResetDisplay.addEventListener('click', () => {
   display.innerHTML = '';
 });
 
-// --- Initiera ---
+// Initiera 
 updateFloorIndicator();
