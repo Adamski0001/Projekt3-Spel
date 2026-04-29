@@ -23,9 +23,9 @@
   var CAR_W = 2.2;
   var CAR_H = 2.8;
   var CAR_D = 2.0;
-  var DOOR_W = 1.05;
-  var DOOR_OPEN = 0.62;
-  var CSS_PX = 50; // px per floor in script.js
+  var DOOR_W = 0.65;
+  var DOOR_OPEN = 0.42;
+  var CSS_PX = 50;
   var BASE_Y = 0.1;
 
   // ==========================================
@@ -50,7 +50,7 @@
   // ==========================================
   var scene = new THREE.Scene();
   scene.background = new THREE.Color(0x080816);
-  scene.fog = new THREE.FogExp2(0x080816, 0.012);
+  scene.fog = new THREE.FogExp2(0x080816, 0.008);
 
   // ==========================================
   // CAMERA
@@ -58,8 +58,8 @@
   var camera = new THREE.PerspectiveCamera(
     45, window.innerWidth / window.innerHeight, 0.1, 150
   );
-  camera.position.set(7, 5, 7);
-  camera.lookAt(0, 3, 0);
+  camera.position.set(9, SHAFT_H * 0.75, 11);
+  camera.lookAt(0, SHAFT_H * 0.4, 0);
 
   // ==========================================
   // LIGHTING
@@ -83,7 +83,7 @@
   scene.add(dirLight);
 
   // Dramatic top-down spot
-  var spot = new THREE.SpotLight(0xccddff, 3.0, 50, Math.PI / 5, 0.5, 1.2);
+  var spot = new THREE.SpotLight(0xccddff, 4.0, 50, Math.PI / 5, 0.5, 1.2);
   spot.position.set(0, SHAFT_H + 4, 1);
   spot.target.position.set(0, 0, 0);
   spot.castShadow = true;
@@ -99,17 +99,55 @@
   accentLight.position.set(-3, 2, 4);
   scene.add(accentLight);
 
+  // Blue rim light from below-right
+  var rimLight = new THREE.PointLight(0x1133aa, 0.4, 30);
+  rimLight.position.set(3, -1, 3);
+  scene.add(rimLight);
+
+  // Cable highlight light — illuminates the cable run area
+  var cableLight = new THREE.PointLight(0xaabbdd, 0.6, 40);
+  cableLight.position.set(2, SHAFT_H * 0.5, 2);
+  scene.add(cableLight);
+
   // ==========================================
   // MATERIALS
   // ==========================================
-  var matConcrete = new THREE.MeshStandardMaterial({ color: 0x707580, roughness: 0.88, metalness: 0.08 });
+  var matConcrete = new THREE.MeshStandardMaterial({
+    color: 0x707580, roughness: 0.88, metalness: 0.08,
+    emissive: 0x050508, emissiveIntensity: 0.15
+  });
   var matConcreteFloor = new THREE.MeshStandardMaterial({ color: 0x606570, roughness: 0.82, metalness: 0.12 });
   var matCarOut = new THREE.MeshStandardMaterial({ color: 0x181828, roughness: 0.28, metalness: 0.85 });
   var matCarIn = new THREE.MeshStandardMaterial({ color: 0x303040, roughness: 0.55, metalness: 0.25 });
   var matDoor = new THREE.MeshStandardMaterial({ color: 0xc0c8d0, roughness: 0.2, metalness: 0.92 });
-  var matRail = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.12, metalness: 1.0 });
+  var matRail = new THREE.MeshStandardMaterial({
+    color: 0xbbbbbb, roughness: 0.08, metalness: 1.0,
+    emissive: 0x111115, emissiveIntensity: 0.1
+  });
   var matCable = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.4, metalness: 0.8 });
   var matGround = new THREE.MeshStandardMaterial({ color: 0x1a1a28, roughness: 0.9, metalness: 0.05 });
+
+  // New materials
+  var matDoorFrame = new THREE.MeshStandardMaterial({
+    color: 0x8a9078, metalness: 0.55, roughness: 0.35,
+    emissive: 0x111108, emissiveIntensity: 0.1
+  });
+  var matSteelCable = new THREE.MeshStandardMaterial({
+    color: 0x999999, roughness: 0.2, metalness: 0.95,
+    emissive: 0x333333, emissiveIntensity: 0.3
+  });
+  var matSheave = new THREE.MeshStandardMaterial({
+    color: 0x555555, roughness: 0.25, metalness: 0.95
+  });
+  var matBracket = new THREE.MeshStandardMaterial({
+    color: 0x4a4a4a, roughness: 0.5, metalness: 0.8
+  });
+  var matBrace = new THREE.MeshStandardMaterial({
+    color: 0x6a6a70, roughness: 0.4, metalness: 0.7
+  });
+  var matMachineRoom = new THREE.MeshStandardMaterial({
+    color: 0x5a5a68, roughness: 0.75, metalness: 0.2
+  });
 
   // ==========================================
   // SHAFT STRUCTURE
@@ -136,28 +174,34 @@
   rw.castShadow = true;
   shaft.add(rw);
 
-  // Floor slabs + trim
-  for (var i = 0; i <= TOTAL_FLOORS; i++) {
-    var slab = new THREE.Mesh(
-      new THREE.BoxGeometry(SHAFT_W + 0.7, 0.2, SHAFT_D + 0.6), matConcreteFloor
-    );
-    slab.position.set(0, i * FLOOR_HEIGHT, 0);
-    slab.receiveShadow = true;
-    slab.castShadow = true;
-    shaft.add(slab);
+  // ==========================================
+  // HOLLOW SHAFT: Structural ledges + door frames
+  // ==========================================
 
-    if (i > 0) {
-      // Front lip / trim
-      var trim = new THREE.Mesh(
-        new THREE.BoxGeometry(SHAFT_W + 0.7, 0.04, 0.12),
-        new THREE.MeshStandardMaterial({ color: 0x99aa88, metalness: 0.5, roughness: 0.4, emissive: 0x222211, emissiveIntensity: 0.15 })
-      );
-      trim.position.set(0, i * FLOOR_HEIGHT + 0.11, SHAFT_D / 2 + 0.28);
-      shaft.add(trim);
-    }
+  // Ground-level slab only (floor 0)
+  var groundSlab = new THREE.Mesh(
+    new THREE.BoxGeometry(SHAFT_W + 0.5, 0.2, SHAFT_D + 0.4), matConcreteFloor
+  );
+  groundSlab.position.set(0, 0, 0);
+  groundSlab.receiveShadow = true;
+  groundSlab.castShadow = true;
+  shaft.add(groundSlab);
+
+  // Door sill at each floor
+  var sillGeo = new THREE.BoxGeometry(CAR_W + 0.4, 0.04, 0.15);
+
+  for (var i = 1; i <= TOTAL_FLOORS; i++) {
+    var fy = i * FLOOR_HEIGHT;
+
+    // Door sill (threshold) only — no jambs/lintels to reduce clutter
+    var sill = new THREE.Mesh(sillGeo, matRail);
+    sill.position.set(0, fy + 0.02, SHAFT_D / 2 + 0.24);
+    shaft.add(sill);
   }
 
-  // Guide rails (two vertical pipes)
+  // ==========================================
+  // GUIDE RAILS
+  // ==========================================
   var railGeo = new THREE.CylinderGeometry(0.045, 0.045, SHAFT_H + 2, 8);
   [-1, 1].forEach(function (s) {
     var r = new THREE.Mesh(railGeo, matRail);
@@ -166,7 +210,45 @@
     shaft.add(r);
   });
 
-  // Floor number labels (glowing sprites on right wall)
+  // Guide rail clip brackets every 2 floors
+  var clipGeo = new THREE.BoxGeometry(0.12, 0.04, 0.08);
+  for (var rci = 1; rci < TOTAL_FLOORS; rci += 2) {
+    [-1, 1].forEach(function (s) {
+      var clip = new THREE.Mesh(clipGeo, matBracket);
+      clip.position.set(
+        s * (SHAFT_W / 2 - 0.1),
+        rci * FLOOR_HEIGHT + 1.5,
+        -SHAFT_D / 2 + 0.1
+      );
+      shaft.add(clip);
+    });
+  }
+
+  // ==========================================
+  // CROSS-BRACING ON BACK WALL
+  // ==========================================
+  var spanH = 3 * FLOOR_HEIGHT;
+  var spanW = SHAFT_W * 0.6;
+  var braceLen = Math.sqrt(spanH * spanH + spanW * spanW);
+  var braceAngle = Math.atan2(spanW, spanH);
+  var braceGeo = new THREE.BoxGeometry(0.04, braceLen, 0.04);
+
+  var braceCenters = [1.5 * FLOOR_HEIGHT, 5.0 * FLOOR_HEIGHT, 8.5 * FLOOR_HEIGHT];
+  for (var bi = 0; bi < braceCenters.length; bi++) {
+    var b1 = new THREE.Mesh(braceGeo, matBrace);
+    b1.position.set(0, braceCenters[bi], -SHAFT_D / 2 + 0.02);
+    b1.rotation.z = braceAngle;
+    shaft.add(b1);
+
+    var b2 = new THREE.Mesh(braceGeo, matBrace);
+    b2.position.set(0, braceCenters[bi], -SHAFT_D / 2 + 0.02);
+    b2.rotation.z = -braceAngle;
+    shaft.add(b2);
+  }
+
+  // ==========================================
+  // FLOOR NUMBER LABELS
+  // ==========================================
   for (var fi = 0; fi < TOTAL_FLOORS; fi++) {
     var lc = document.createElement('canvas');
     lc.width = 64; lc.height = 64;
@@ -185,7 +267,9 @@
     shaft.add(lspr);
   }
 
-  // Small emergency lights along shaft (emissive dots)
+  // ==========================================
+  // EMERGENCY LIGHTS
+  // ==========================================
   for (var ei = 1; ei < TOTAL_FLOORS; ei++) {
     var eLightGeo = new THREE.SphereGeometry(0.04, 6, 6);
     var eLightMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
@@ -194,9 +278,104 @@
     shaft.add(eLight);
   }
 
+  // ==========================================
+  // MACHINE ROOM (open frame so cables are visible)
+  // ==========================================
+  var mrBeamGeo = new THREE.BoxGeometry(0.15, 0.15, SHAFT_D + 0.6);
+  var mrBeamGeoX = new THREE.BoxGeometry(SHAFT_W + 0.6, 0.15, 0.15);
+  var mrPostGeo = new THREE.BoxGeometry(0.15, 3.0, 0.15);
+
+  // 4 corner posts
+  [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(function (c) {
+    var post = new THREE.Mesh(mrPostGeo, matMachineRoom);
+    post.position.set(
+      c[0] * (SHAFT_W / 2 + 0.22),
+      SHAFT_H + 1.5,
+      c[1] * (SHAFT_D / 2 + 0.22)
+    );
+    post.castShadow = true;
+    shaft.add(post);
+  });
+
+  // Top beams (connecting posts at top)
+  var mrTopY = SHAFT_H + 3.0;
+  var mrBotY = SHAFT_H + 0.05;
+  [mrTopY, mrBotY].forEach(function (by) {
+    // Front-back beams (left and right side)
+    [-1, 1].forEach(function (s) {
+      var beam = new THREE.Mesh(mrBeamGeo, matMachineRoom);
+      beam.position.set(s * (SHAFT_W / 2 + 0.22), by, 0);
+      shaft.add(beam);
+    });
+    // Left-right beams (front and back side)
+    [-1, 1].forEach(function (s) {
+      var beam = new THREE.Mesh(mrBeamGeoX, matMachineRoom);
+      beam.position.set(0, by, s * (SHAFT_D / 2 + 0.22));
+      shaft.add(beam);
+    });
+  });
+
+  // Motor housing drum (centered in machine room)
+  var motorDrum = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.35, 0.35, 0.7, 16), matSheave
+  );
+  motorDrum.rotation.z = Math.PI / 2;
+  motorDrum.position.set(0, SHAFT_H + 2.5, -SHAFT_D / 2 + 0.5);
+  shaft.add(motorDrum);
+
+  // ==========================================
+  // ELEVATOR PIT (below ground)
+  // ==========================================
+
+  // Pit back wall
+  var pitBack = new THREE.Mesh(new THREE.BoxGeometry(SHAFT_W + 0.5, 1.5, 0.3), matConcrete);
+  pitBack.position.set(0, -0.75, -SHAFT_D / 2 - 0.15);
+  shaft.add(pitBack);
+
+  // Pit left wall
+  var pitLeft = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.5, SHAFT_D + 0.5), matConcrete);
+  pitLeft.position.set(-SHAFT_W / 2 - 0.15, -0.75, 0);
+  shaft.add(pitLeft);
+
+  // Pit right wall
+  var pitRight = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.5, SHAFT_D + 0.5), matConcrete);
+  pitRight.position.set(SHAFT_W / 2 + 0.15, -0.75, 0);
+  shaft.add(pitRight);
+
+  // Pit floor
+  var pitFloor = new THREE.Mesh(
+    new THREE.BoxGeometry(SHAFT_W + 0.3, 0.15, SHAFT_D + 0.3), matConcreteFloor
+  );
+  pitFloor.position.set(0, -1.5, 0);
+  shaft.add(pitFloor);
+
+  // Safety buffers (hydraulic cylinders)
+  var bufferMat = new THREE.MeshStandardMaterial({ color: 0xcc2200, roughness: 0.4, metalness: 0.3 });
+  var springMat = new THREE.MeshStandardMaterial({ color: 0xbb3300, roughness: 0.35, metalness: 0.5 });
+  var bufferGeo = new THREE.CylinderGeometry(0.08, 0.1, 0.6, 8);
+
+  [-0.3, 0.3].forEach(function (bx) {
+    var buf = new THREE.Mesh(bufferGeo, bufferMat);
+    buf.position.set(bx, -1.1, 0);
+    shaft.add(buf);
+
+    // Spring coils
+    var springYs = [-1.2, -1.05, -0.9];
+    for (var si = 0; si < springYs.length; si++) {
+      var spring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.1, 0.015, 6, 16), springMat
+      );
+      spring.rotation.x = Math.PI / 2;
+      spring.position.set(bx, springYs[si], 0);
+      shaft.add(spring);
+    }
+  });
+
   scene.add(shaft);
 
-  // Ground plane
+  // ==========================================
+  // GROUND PLANE
+  // ==========================================
   var ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), matGround);
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.05;
@@ -248,7 +427,17 @@
   sRight.castShadow = true;
   car.add(sRight);
 
-  // Doors
+  // Front wall panels (flanking the door opening)
+  var frontPanelW = (CAR_W - DOOR_W * 2) / 2;
+  var frontPanelGeo = new THREE.BoxGeometry(frontPanelW, CAR_H, 0.05);
+  var fpL = new THREE.Mesh(frontPanelGeo, matCarIn);
+  fpL.position.set(-CAR_W / 2 + frontPanelW / 2, CAR_H / 2, CAR_D / 2 - 0.02);
+  car.add(fpL);
+  var fpR = new THREE.Mesh(frontPanelGeo, matCarIn);
+  fpR.position.set(CAR_W / 2 - frontPanelW / 2, CAR_H / 2, CAR_D / 2 - 0.02);
+  car.add(fpR);
+
+  // Doors (narrower, slide behind front panels)
   var doorGeo = new THREE.BoxGeometry(DOOR_W, CAR_H - 0.3, 0.035);
   var dL = new THREE.Mesh(doorGeo, matDoor);
   dL.position.set(-DOOR_W / 2, CAR_H / 2, CAR_D / 2 + 0.005);
@@ -284,29 +473,24 @@
   var shoeM = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
   var hairM = new THREE.MeshStandardMaterial({ color: 0x332211, roughness: 0.8 });
 
-  // Head
   var pHead = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 12), skinM);
   pHead.position.set(0, 1.65, 0);
   pHead.castShadow = true;
   person.add(pHead);
 
-  // Hair
   var pHair = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), hairM);
   pHair.position.set(0, 1.65, 0);
   person.add(pHair);
 
-  // Neck
   var pNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.1, 8), skinM);
   pNeck.position.set(0, 1.47, 0);
   person.add(pNeck);
 
-  // Torso
   var pTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, 0.6, 8), shirtM);
   pTorso.position.set(0, 1.12, 0);
   pTorso.castShadow = true;
   person.add(pTorso);
 
-  // Arms
   var armGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.5, 6);
   var armL = new THREE.Mesh(armGeo, shirtM);
   armL.position.set(-0.22, 1.05, 0);
@@ -317,7 +501,6 @@
   armR.rotation.z = -0.1;
   person.add(armR);
 
-  // Legs
   var legGeo = new THREE.CylinderGeometry(0.06, 0.055, 0.55, 8);
   var legL = new THREE.Mesh(legGeo, pantsM);
   legL.position.set(-0.09, 0.5, 0);
@@ -328,7 +511,6 @@
   legR.castShadow = true;
   person.add(legR);
 
-  // Shoes
   var shoeGeo = new THREE.BoxGeometry(0.1, 0.05, 0.16);
   var shoeL = new THREE.Mesh(shoeGeo, shoeM);
   shoeL.position.set(-0.09, 0.2, 0.03);
@@ -361,48 +543,163 @@
   scene.add(car);
 
   // ==========================================
-  // CABLE
+  // SHEAVE / PULLEY ASSEMBLY (centered at shaft top, visible)
   // ==========================================
-  var cable = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.02, 0.02, 1, 6), matCable
+  var SHEAVE_Z = -0.15; // slightly behind center, but visible from front
+  var sheave = new THREE.Mesh(
+    new THREE.TorusGeometry(0.35, 0.1, 12, 28), matSheave
   );
-  scene.add(cable);
+  sheave.rotation.x = Math.PI / 2;
+  sheave.position.set(0, SHAFT_H + 2.0, SHEAVE_Z);
+  scene.add(sheave);
 
-  function updCable() {
+  // Sheave axle
+  var sheaveAxle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.05, 0.05, 0.8, 8), matSheave
+  );
+  sheaveAxle.rotation.z = Math.PI / 2;
+  sheaveAxle.position.set(0, SHAFT_H + 2.0, SHEAVE_Z);
+  scene.add(sheaveAxle);
+
+  // Mounting brackets
+  var mountGeo = new THREE.BoxGeometry(0.15, 0.25, 0.15);
+  var mountL = new THREE.Mesh(mountGeo, matBracket);
+  mountL.position.set(-0.45, SHAFT_H + 2.0, SHEAVE_Z);
+  scene.add(mountL);
+  var mountR = new THREE.Mesh(mountGeo, matBracket);
+  mountR.position.set(0.45, SHAFT_H + 2.0, SHEAVE_Z);
+  scene.add(mountR);
+
+  // ==========================================
+  // CABLE SYSTEM (4 thick steel cables, centered in shaft)
+  // ==========================================
+  var NUM_CABLES = 4;
+  var cables = [];
+  // 2x2 rectangle pattern on car roof, centered in shaft
+  var cableOffsets = [
+    [-0.12, -0.10], [0.12, -0.10],
+    [-0.12,  0.10], [0.12,  0.10]
+  ];
+  var cableBaseGeo = new THREE.CylinderGeometry(0.025, 0.025, 1, 8);
+  for (var ci = 0; ci < NUM_CABLES; ci++) {
+    var cab = new THREE.Mesh(cableBaseGeo, matSteelCable);
+    cab.castShadow = true;
+    scene.add(cab);
+    cables.push(cab);
+  }
+
+  function updCable(t) {
     var top = car.position.y + CAR_H;
-    var anchor = SHAFT_H + 3;
+    var anchor = SHAFT_H + 2.0; // sheave Y
     var len = Math.max(anchor - top, 0.1);
-    cable.scale.y = len;
-    cable.position.set(0, top + len / 2, -SHAFT_D / 2 + 0.18);
+    var swayAmount = moving ? 0.02 : 0.005;
+
+    for (var ci = 0; ci < NUM_CABLES; ci++) {
+      var ox = cableOffsets[ci][0];
+      var oz = cableOffsets[ci][1];
+      var sway = Math.sin(t * 3.0 + ci * 1.5) * swayAmount;
+
+      cables[ci].scale.y = len;
+      cables[ci].position.set(
+        ox + sway,
+        top + len / 2,
+        SHEAVE_Z + oz
+      );
+    }
   }
 
   // ==========================================
-  // COUNTERWEIGHT
+  // COUNTERWEIGHT (detailed)
   // ==========================================
-  var cw = new THREE.Mesh(
-    new THREE.BoxGeometry(0.45, 0.9, 0.35),
-    new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.65, roughness: 0.45 })
+  var cw = new THREE.Group();
+
+  // Main body
+  var cwBody = new THREE.Mesh(
+    new THREE.BoxGeometry(0.45, 0.8, 0.35),
+    new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.7, roughness: 0.4 })
   );
-  cw.castShadow = true;
+  cwBody.castShadow = true;
+  cw.add(cwBody);
+
+  // Stacked plate grooves
+  for (var gri = 0; gri < 3; gri++) {
+    var groove = new THREE.Mesh(
+      new THREE.BoxGeometry(0.46, 0.01, 0.36),
+      new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8, roughness: 0.3 })
+    );
+    groove.position.y = -0.25 + gri * 0.25;
+    cw.add(groove);
+  }
+
+  // Guide shoes (top and bottom)
+  var shoeGeoC = new THREE.BoxGeometry(0.08, 0.06, 0.38);
+  var shoeMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.6, roughness: 0.5 });
+  var shoeTop = new THREE.Mesh(shoeGeoC, shoeMat);
+  shoeTop.position.set(0, 0.43, 0);
+  cw.add(shoeTop);
+  var shoeBot = new THREE.Mesh(shoeGeoC, shoeMat);
+  shoeBot.position.set(0, -0.43, 0);
+  cw.add(shoeBot);
+
   scene.add(cw);
 
-  var cwCable = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.015, 0.015, 1, 6), matCable
-  );
-  scene.add(cwCable);
+  // Counterweight cables (3)
+  var cwCables = [];
+  var cwCableOffsets = [-0.05, 0, 0.05];
+  var cwCableGeo = new THREE.CylinderGeometry(0.01, 0.01, 1, 6);
+  for (var cwi = 0; cwi < 3; cwi++) {
+    var cwc = new THREE.Mesh(cwCableGeo, matSteelCable);
+    scene.add(cwc);
+    cwCables.push(cwc);
+  }
 
-  function updCounterweight() {
+  function updCounterweight(t) {
     var maxY = (TOTAL_FLOORS - 1) * FLOOR_HEIGHT;
     var ratio = Math.max(0, Math.min(1, (car.position.y - BASE_Y) / maxY));
     var cwY = SHAFT_H * 0.85 * (1 - ratio) + 0.5;
-    cw.position.set(-SHAFT_W / 2 + 0.1, cwY, -SHAFT_D / 2 + 0.2);
+    var cwX = -SHAFT_W / 2 + 0.18;
+    var cwZ = -SHAFT_D / 2 + 0.25;
+    cw.position.set(cwX, cwY, cwZ);
 
-    var anchor = SHAFT_H + 3;
+    var anchor = SHAFT_H + 2.0;
     var cwTop = cwY + 0.45;
     var cwLen = Math.max(anchor - cwTop, 0.1);
-    cwCable.scale.y = cwLen;
-    cwCable.position.set(-SHAFT_W / 2 + 0.1, cwTop + cwLen / 2, -SHAFT_D / 2 + 0.2);
+    var swayAmt = moving ? 0.008 : 0.002;
+
+    for (var cwi = 0; cwi < 3; cwi++) {
+      var sway = Math.sin(t * 2.8 + cwi * 1.5) * swayAmt;
+      cwCables[cwi].scale.y = cwLen;
+      cwCables[cwi].position.set(
+        cwX + cwCableOffsets[cwi] + sway,
+        cwTop + cwLen / 2,
+        cwZ
+      );
+    }
   }
+
+  // ==========================================
+  // DUST PARTICLES
+  // ==========================================
+  var dustCount = 200;
+  var dustPositions = new Float32Array(dustCount * 3);
+  for (var di = 0; di < dustCount; di++) {
+    dustPositions[di * 3] = (Math.random() - 0.5) * SHAFT_W;
+    dustPositions[di * 3 + 1] = Math.random() * SHAFT_H;
+    dustPositions[di * 3 + 2] = (Math.random() - 0.5) * SHAFT_D;
+  }
+  var dustGeo = new THREE.BufferGeometry();
+  dustGeo.setAttribute('position', new THREE.Float32BufferAttribute(dustPositions, 3));
+
+  var dustMat = new THREE.PointsMaterial({
+    color: 0xaabbcc,
+    size: 0.03,
+    transparent: true,
+    opacity: 0.35,
+    sizeAttenuation: true
+  });
+
+  var dust = new THREE.Points(dustGeo, dustMat);
+  scene.add(dust);
 
   // ==========================================
   // STATE
@@ -411,27 +708,31 @@
   var curY = BASE_Y;
   var vel = 0;
   var moving = false;
-  var doorAmt = 1.0; // 0=closed, 1=open
+  var doorAmt = 1.0;
   var doorTgt = 1.0;
   var doorsOpen = true;
   var floorNum = 1;
   var floorDir = '\u2013';
-  var moveDir = 0; // +1 up, -1 down
-  var floorsCount = 0;
+  var moveDir = 0;
 
-  // Camera state
-  var MODE = { OVER: 0, TRACK: 1, LOW: 2, HIGH: 3, DOOR: 4 };
-  var camMode = MODE.OVER;
-  var camP = new THREE.Vector3(7, 5, 7);
-  var camL = new THREE.Vector3(0, 3, 0);
-  var modeTime = 0;
+  // Camera state — cinematic sequence system
+  var CAM = { INTRO_OVER: 0, INTRO_DESCEND: 1, IDLE: 2, TRACK: 3, DOOR: 4 };
+  var camState = CAM.INTRO_OVER;
+  // Start high up, looking at the full shaft
+  var camP = new THREE.Vector3(9, SHAFT_H * 0.75, 11);
+  var camL = new THREE.Vector3(0, SHAFT_H * 0.4, 0);
   var idleTime = 0;
+  var stateStartTime = 0;
+  var doorCamStartTime = 0;
+  var prevDoorsOpen = true;
+  var prevMoving = false;
+  var stoppedAt = 0;
+  var stopPending = false;
 
   // ==========================================
   // MUTATION OBSERVERS
   // ==========================================
 
-  // 1) Elevator transform → 3D position
   var elev = document.getElementById('elevator');
   if (elev) {
     new MutationObserver(function () {
@@ -445,23 +746,32 @@
         moveDir = ny > targetY ? 1 : -1;
         targetY = ny;
         moving = true;
-        floorsCount++;
+        // First user action aborts the intro animation so the camera
+        // follows the elevator immediately instead of finishing the fly-in.
+        if (camState === CAM.INTRO_OVER || camState === CAM.INTRO_DESCEND) {
+          camState = CAM.TRACK;
+          idleTime = 0;
+        }
       }
     }).observe(elev, { attributes: true, attributeFilter: ['style'] });
   }
 
-  // 2) Door classes → open/close
   var dLE = document.querySelector('.door-left');
   var dRE = document.querySelector('.door-right');
   function syncD() {
     doorsOpen = !!(dLE && dLE.classList.contains('open'));
     doorTgt = doorsOpen ? 1 : 0;
+    // First user action (door close) aborts intro animation so the camera
+    // starts moving toward the elevator right away.
+    if (!doorsOpen && (camState === CAM.INTRO_OVER || camState === CAM.INTRO_DESCEND)) {
+      camState = CAM.IDLE;
+      idleTime = 0;
+    }
   }
   if (dLE) new MutationObserver(syncD).observe(dLE, { attributes: true, attributeFilter: ['class'] });
   if (dRE) new MutationObserver(syncD).observe(dRE, { attributes: true, attributeFilter: ['class'] });
   syncD();
 
-  // 3) Floor indicator
   var fnE = document.querySelector('.floor-number');
   var fdE = document.querySelector('.floor-direction');
   if (fnE) new MutationObserver(function () {
@@ -472,7 +782,7 @@
   if (fdE) new MutationObserver(function () {
     floorDir = fdE.textContent || '\u2013';
     updInd();
-    updCamMode();
+    updCamMode(clock.getElapsedTime());
   }).observe(fdE, { childList: true, characterData: true, subtree: true });
 
   // ==========================================
@@ -498,88 +808,156 @@
   updInd();
 
   // ==========================================
-  // CAMERA MODE SELECTION
+  // CAMERA MODE SELECTION (simple state machine)
   // ==========================================
-  function updCamMode() {
-    var now = performance.now() * 0.001;
-    if (now - modeTime < 0.8) return;
+  function updCamMode(t) {
+    if (camState === CAM.INTRO_OVER || camState === CAM.INTRO_DESCEND) {
+      prevDoorsOpen = doorsOpen;
+      return;
+    }
 
-    if (floorDir === '\u25B2') { // up arrow
-      camMode = (floorsCount % 5 === 0 && Math.random() > 0.45) ? MODE.HIGH : MODE.TRACK;
+    // Primary trigger: car stops and stays stopped for a short dwell
+    // (longer than a pass-through). Fires BEFORE doors open — the DOM
+    // waits an extra moment after arrival before calling openDoors, so
+    // the camera gets lead time to lerp into position.
+    if (stopPending && !moving && (t - stoppedAt) > 0.2 && camState !== CAM.DOOR) {
+      camState = CAM.DOOR;
+      doorCamStartTime = t;
       idleTime = 0;
-      modeTime = now;
-    } else if (floorDir === '\u25BC') { // down arrow
-      camMode = (floorsCount % 5 === 0 && Math.random() > 0.45) ? MODE.LOW : MODE.TRACK;
+      stopPending = false;
+    }
+    // Fallback: if the scene car was still arriving when the DOM opened
+    // doors, catch the rising edge too.
+    if (doorsOpen && !prevDoorsOpen && !moving && camState !== CAM.DOOR) {
+      camState = CAM.DOOR;
+      doorCamStartTime = t;
       idleTime = 0;
-      modeTime = now;
+    }
+    // Door-close falling edge → return to IDLE so we don't stare at shut doors.
+    if (!doorsOpen && prevDoorsOpen && camState === CAM.DOOR) {
+      camState = CAM.IDLE;
+      idleTime = 0;
+    }
+    prevDoorsOpen = doorsOpen;
+
+    if (moving) {
+      if (camState !== CAM.TRACK) {
+        camState = CAM.TRACK;
+        idleTime = 0;
+      }
     } else {
-      if (doorsOpen && camMode !== MODE.DOOR && camMode !== MODE.OVER) {
-        camMode = MODE.DOOR;
-        modeTime = now;
+      // Only leave TRACK after being stopped for 2+ seconds
+      // (prevents frantic switching during multi-floor trips)
+      if (camState === CAM.TRACK && idleTime > 2.0) {
+        camState = CAM.IDLE;
+        idleTime = 0;
       }
     }
   }
 
   // ==========================================
-  // CAMERA UPDATE
+  // CAMERA UPDATE (cinematic sequence)
   // ==========================================
+  // Smoothstep helper: ease-in-ease-out [0,1] → [0,1]
+  function smoothstep(x) {
+    x = Math.max(0, Math.min(1, x));
+    return x * x * (3 - 2 * x);
+  }
+
   function updCam(t, dt) {
     var cy = car.position.y + CAR_H * 0.5;
-    var tp, tl;
+    var tp, tl, lerpBase;
 
-    switch (camMode) {
-      case MODE.OVER:
+    switch (camState) {
+
+      // --- PHASE 1: Overview of entire shaft (first ~4 seconds) ---
+      case CAM.INTRO_OVER:
         tp = new THREE.Vector3(
-          6.0 + Math.sin(t * 0.15) * 2.0,
-          cy + 5 + Math.sin(t * 0.1) * 1.5,
-          6.0 + Math.cos(t * 0.12) * 1.5
+          9 + Math.sin(t * 0.12) * 0.5,
+          SHAFT_H * 0.7 + Math.sin(t * 0.08) * 0.5,
+          11 + Math.cos(t * 0.1) * 0.3
+        );
+        tl = new THREE.Vector3(0, SHAFT_H * 0.4, 0);
+        lerpBase = 0.04;
+
+        if (t > 4.0) {
+          camState = CAM.INTRO_DESCEND;
+          stateStartTime = t;
+        }
+        break;
+
+      // --- PHASE 2: Smooth descent to elevator car (4–10 seconds) ---
+      case CAM.INTRO_DESCEND:
+        var descProgress = smoothstep((t - stateStartTime) / 6.0);
+        // Glide from overview height down to car level, medium distance
+        var startY = SHAFT_H * 0.7;
+        var endY = cy + 3;
+        var startR = 11;
+        var endR = 8;
+        var r = startR + (endR - startR) * descProgress;
+        var h = startY + (endY - startY) * descProgress;
+        var angle = 0.3 + descProgress * 0.5; // gentle angle change
+
+        tp = new THREE.Vector3(
+          Math.sin(angle) * r,
+          h,
+          Math.cos(angle) * r
+        );
+        tl = new THREE.Vector3(0, cy + (1 - descProgress) * SHAFT_H * 0.2, 0);
+        lerpBase = 0.03;
+
+        if (descProgress >= 1.0) {
+          camState = CAM.IDLE;
+          idleTime = 0;
+        }
+        break;
+
+      // --- IDLE: Medium-distance gentle sway, always facing the front ---
+      case CAM.IDLE:
+        // Sway within front arc (±25° from front-right), never goes behind
+        var swayAngle = 0.45 + Math.sin(t * 0.06) * 0.35;
+        var idleR = 8 + Math.sin(t * 0.03) * 0.5;
+        tp = new THREE.Vector3(
+          Math.sin(swayAngle) * idleR,
+          cy + 1.2 + Math.sin(t * 0.05) * 0.3,
+          Math.cos(swayAngle) * idleR
         );
         tl = new THREE.Vector3(0, cy, 0);
+        lerpBase = 0.012;
         break;
 
-      case MODE.TRACK:
+      // --- TRACKING: Closer view following the moving car ---
+      case CAM.TRACK:
         tp = new THREE.Vector3(
-          4.5 + Math.sin(t * 0.3) * 0.7,
-          cy + 1.0 + moveDir * 0.6,
-          4.2 + Math.cos(t * 0.2) * 0.4
+          4.5 + Math.sin(t * 0.2) * 0.4,
+          cy + 1.0,
+          5.5 + Math.cos(t * 0.15) * 0.3
         );
-        tl = new THREE.Vector3(0, cy + moveDir * 1.5, 0);
-        // shake
-        tp.x += (Math.random() - 0.5) * 0.03;
-        tp.y += (Math.random() - 0.5) * 0.025;
+        tl = new THREE.Vector3(0, cy, 0);
+        lerpBase = 0.018;
         break;
 
-      case MODE.LOW:
+      // --- DOOR: Gentle approach toward the open doors ---
+      case CAM.DOOR:
+        var doorElapsed = Math.max(0, t - doorCamStartTime);
+        var approach = Math.min(doorElapsed * 0.15, 0.6);
         tp = new THREE.Vector3(
-          3.8 + Math.sin(t * 0.18) * 0.4,
-          Math.max(cy - 10, 0.5),
-          5.0
+          0.4 + Math.sin(t * 0.08) * 0.15,
+          cy + 0.4,
+          CAR_D / 2 + 5.5 - approach
         );
-        tl = new THREE.Vector3(0, cy + 4, 0);
-        break;
-
-      case MODE.HIGH:
-        tp = new THREE.Vector3(
-          3.8 + Math.sin(t * 0.18) * 0.4,
-          Math.min(cy + 12, SHAFT_H + 4),
-          5.0
-        );
-        tl = new THREE.Vector3(0, cy - 4, 0);
-        break;
-
-      case MODE.DOOR:
-        var pushIn = Math.min(idleTime * 0.06, 0.5);
-        tp = new THREE.Vector3(0, cy + 0.15, CAR_D / 2 + 4.0 - pushIn);
-        tl = new THREE.Vector3(0, cy - 0.05, 0);
+        tl = new THREE.Vector3(0, cy - 0.1, -0.2);
+        lerpBase = 0.01;
         break;
 
       default:
         tp = camP.clone();
         tl = camL.clone();
+        lerpBase = 0.02;
     }
 
-    // Smooth lerp (framerate independent)
-    var f = 1.0 - Math.pow(0.02, dt);
+    // Frame-rate independent smooth lerp
+    var f = 1.0 - Math.pow(lerpBase, dt);
     camP.lerp(tp, f);
     camL.lerp(tl, f);
     camera.position.copy(camP);
@@ -597,57 +975,91 @@
     var dt = Math.min(clock.getDelta(), 0.05);
     var t = clock.getElapsedTime();
 
-    // --- Car physics ---
-    var diff = targetY - curY;
-    var dist = Math.abs(diff);
+    // --- Car physics: run when doors effectively closed, or while an in-flight
+    //     trip finishes arriving (so a slight timing lag vs. DOM can't strand
+    //     the car between floors when DOM begins opening doors).
+    if (doorAmt <= 0.02 || moving) {
+      var diff = targetY - curY;
+      var dist = Math.abs(diff);
 
-    if (dist > 0.004) {
-      var d = Math.sign(diff);
-      var decelDist = (vel * vel) / 24;
+      if (dist > 0.002) {
+        if (!moving) {
+          moving = true;
+          moveDir = diff > 0 ? 1 : -1;
+        }
+        var d = Math.sign(diff);
+        var decelDist = (vel * vel) / 8;
 
-      if (dist > decelDist + 0.12) {
-        vel = Math.min(vel + 12 * dt, 8);
+        if (dist > decelDist + 0.3) {
+          vel = Math.min(vel + 3.0 * dt, 3.5);
+        } else {
+          vel = Math.max(vel - 5.0 * dt, 0);
+        }
+        var step = Math.max(vel, 0.15) * dt;
+        if (step > dist) step = dist;
+        curY += d * step;
+
+        if ((d > 0 && curY >= targetY) || (d < 0 && curY <= targetY)) {
+          curY = targetY;
+          vel = 0;
+        }
       } else {
-        vel = Math.max(vel - 18 * dt, 0.25);
-      }
-      curY += d * vel * dt;
-
-      if ((d > 0 && curY > targetY) || (d < 0 && curY < targetY)) {
         curY = targetY;
         vel = 0;
-        moving = false;
-        moveDir = 0;
+        if (moving) {
+          // Car just arrived at a floor — DOM drives the door-open event via syncD.
+          moving = false;
+          moveDir = 0;
+        }
       }
-    } else {
-      curY = targetY;
-      vel = 0;
-      if (moving) { moving = false; moveDir = 0; }
     }
     car.position.y = curY;
 
-    // --- Doors ---
-    var dd = doorTgt - doorAmt;
-    if (Math.abs(dd) > 0.001) {
-      doorAmt += Math.sign(dd) * 1.8 * dt;
-      doorAmt = Math.max(0, Math.min(1, doorAmt));
+    // --- Doors: DOM .open class (via syncD → doorTgt) is the source of truth ---
+    if (doorAmt < doorTgt) {
+      doorAmt = Math.min(doorAmt + 1.0 * dt, doorTgt);
+    } else if (doorAmt > doorTgt) {
+      doorAmt = Math.max(doorAmt - 1.0 * dt, doorTgt);
     }
+
     dL.position.x = -DOOR_W / 2 - doorAmt * DOOR_OPEN;
     dR.position.x = DOOR_W / 2 + doorAmt * DOOR_OPEN;
 
-    // Light spills more when doors open
     carLight.intensity = 0.35 + doorAmt * 0.65;
 
     // --- Cable + counterweight ---
-    updCable();
-    updCounterweight();
+    updCable(t);
+    updCounterweight(t);
 
-    // --- Idle / camera mode timer ---
+    // --- Dust particles ---
+    var dPos = dust.geometry.attributes.position.array;
+    for (var di = 0; di < dustCount; di++) {
+      dPos[di * 3 + 1] += Math.sin(t * 0.5 + di) * 0.003;
+      dPos[di * 3] += Math.cos(t * 0.3 + di * 0.7) * 0.001;
+      if (dPos[di * 3 + 1] > SHAFT_H) dPos[di * 3 + 1] = 0;
+      if (dPos[di * 3 + 1] < 0) dPos[di * 3 + 1] = SHAFT_H;
+    }
+    dust.geometry.attributes.position.needsUpdate = true;
+
+    // --- Idle timer + camera state updates ---
     if (!moving) {
       idleTime += dt;
-      if (idleTime > 4.5 && camMode === MODE.DOOR) camMode = MODE.OVER;
     } else {
       idleTime = 0;
     }
+
+    // Track moving→false edge so we can trigger the door-focus camera
+    // before the DOM actually opens the doors (see updCamMode).
+    if (prevMoving && !moving) {
+      stoppedAt = t;
+      stopPending = true;
+    }
+    if (moving) {
+      stopPending = false;
+    }
+    prevMoving = moving;
+
+    updCamMode(t);
 
     // --- Camera ---
     updCam(t, dt);
@@ -668,8 +1080,8 @@
   // ==========================================
   // GO
   // ==========================================
-  updCable();
-  updCounterweight();
+  updCable(0);
+  updCounterweight(0);
   loop();
 
 })();

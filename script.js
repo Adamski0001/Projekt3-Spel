@@ -59,13 +59,13 @@ function openDoors() {
 function moveOneFloor(targetFloor) {
   return new Promise(resolve => {
     const targetPos = (targetFloor - 1) * floorHeight;
-    elevator.style.transition = 'transform 0.5s linear';
+    elevator.style.transition = 'transform 1.5s linear';
     elevator.style.transform = `translateY(-${targetPos}px)`;
     setTimeout(() => {
       currentFloor = targetFloor;
       updateFloorIndicator();
       resolve();
-    }, 500);
+    }, 1500);
   });
 }
 
@@ -141,6 +141,9 @@ function clearStopHere() {
 async function stopAtCurrentFloor() {
   clearStopHere();
   updateDisplay('Stannar på våning ' + currentFloor);
+  // Short pause after arrival before doors open — gives the 3D camera
+  // time to focus on the doors first.
+  await delay(500);
   await openDoors();
   await delay(2000);
   if (hasAnyStops()) {
