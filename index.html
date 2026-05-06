@@ -78,24 +78,44 @@
     <div class="overlay">
         <div class="overlay-left">
             <h1>Simulation: Hiss</h1>
-            <div class="floor-buttons">
-                <!-- Buttons inside the elevator -->
-                <span class="caption">Inre hisspanel</span>
-                <div class="floor-indicator">
-                    <span class="floor-number">1</span>
-                    <span class="floor-direction">–</span>
+            <div class="cabin-stack">
+                <div class="cabin" data-car="a">
+                    <span class="caption">Inre panel — Hiss A</span>
+                    <div class="floor-indicator">
+                        <span class="floor-number" data-car="a">1</span>
+                        <span class="floor-direction" data-car="a">–</span>
+                    </div>
+                    <div class="panel" data-car="a">
+                        <button class="btn-secondary" data-car="a" data-floor="9">9</button>
+                        <button class="btn-secondary" data-car="a" data-floor="10">10</button>
+                        <button class="btn-secondary" data-car="a" data-floor="7">7</button>
+                        <button class="btn-secondary" data-car="a" data-floor="8">8</button>
+                        <button class="btn-secondary" data-car="a" data-floor="5">5</button>
+                        <button class="btn-secondary" data-car="a" data-floor="6">6</button>
+                        <button class="btn-secondary" data-car="a" data-floor="3">3</button>
+                        <button class="btn-secondary" data-car="a" data-floor="4">4</button>
+                        <button class="btn-secondary" data-car="a" data-floor="1">1</button>
+                        <button class="btn-secondary" data-car="a" data-floor="2">2</button>
+                    </div>
                 </div>
-                <div class="panel">
-                    <button class="btn-secondary" data-floor="9">9</button>
-                    <button class="btn-secondary" data-floor="10">10</button>
-                    <button class="btn-secondary" data-floor="7">7</button>
-                    <button class="btn-secondary" data-floor="8">8</button>
-                    <button class="btn-secondary" data-floor="5">5</button>
-                    <button class="btn-secondary" data-floor="6">6</button>
-                    <button class="btn-secondary" data-floor="3">3</button>
-                    <button class="btn-secondary" data-floor="4">4</button>
-                    <button class="btn-secondary" data-floor="1">1</button>
-                    <button class="btn-secondary" data-floor="2">2</button>
+                <div class="cabin" data-car="b">
+                    <span class="caption">Inre panel — Hiss B</span>
+                    <div class="floor-indicator">
+                        <span class="floor-number" data-car="b">1</span>
+                        <span class="floor-direction" data-car="b">–</span>
+                    </div>
+                    <div class="panel" data-car="b">
+                        <button class="btn-secondary" data-car="b" data-floor="9">9</button>
+                        <button class="btn-secondary" data-car="b" data-floor="10">10</button>
+                        <button class="btn-secondary" data-car="b" data-floor="7">7</button>
+                        <button class="btn-secondary" data-car="b" data-floor="8">8</button>
+                        <button class="btn-secondary" data-car="b" data-floor="5">5</button>
+                        <button class="btn-secondary" data-car="b" data-floor="6">6</button>
+                        <button class="btn-secondary" data-car="b" data-floor="3">3</button>
+                        <button class="btn-secondary" data-car="b" data-floor="4">4</button>
+                        <button class="btn-secondary" data-car="b" data-floor="1">1</button>
+                        <button class="btn-secondary" data-car="b" data-floor="2">2</button>
+                    </div>
                 </div>
             </div>
             <div>
@@ -111,73 +131,91 @@
         <div class="overlay-right">
             <span class="caption">Våningsknappar</span>
             <div class="floors">
-                <!-- Kallknappar på varje våning (upp/ned) -->
+                <!-- Kallknappar på varje våning (upp/ned). Badge visar vilken hiss (A/B) som tilldelats anropet. -->
                 <div class="floor">
                     <span>Våning 10</span>
                     <div class="call-buttons">
                         <span class="call-placeholder"></span>
+                        <span class="assigned-badge" data-floor="10" data-direction="down"></span>
                         <button class="btn-secondary" data-floor="10" data-direction="down">▼</button>
                     </div>
                 </div>
                 <div class="floor">
                     <span>Våning 9</span>
                     <div class="call-buttons">
+                        <span class="assigned-badge" data-floor="9" data-direction="up"></span>
                         <button class="btn-secondary" data-floor="9" data-direction="up">▲</button>
+                        <span class="assigned-badge" data-floor="9" data-direction="down"></span>
                         <button class="btn-secondary" data-floor="9" data-direction="down">▼</button>
                     </div>
                 </div>
                 <div class="floor">
                     <span>Våning 8</span>
                     <div class="call-buttons">
+                        <span class="assigned-badge" data-floor="8" data-direction="up"></span>
                         <button class="btn-secondary" data-floor="8" data-direction="up">▲</button>
+                        <span class="assigned-badge" data-floor="8" data-direction="down"></span>
                         <button class="btn-secondary" data-floor="8" data-direction="down">▼</button>
                     </div>
                 </div>
                 <div class="floor">
                     <span>Våning 7</span>
                     <div class="call-buttons">
+                        <span class="assigned-badge" data-floor="7" data-direction="up"></span>
                         <button class="btn-secondary" data-floor="7" data-direction="up">▲</button>
+                        <span class="assigned-badge" data-floor="7" data-direction="down"></span>
                         <button class="btn-secondary" data-floor="7" data-direction="down">▼</button>
                     </div>
                 </div>
                 <div class="floor">
                     <span>Våning 6</span>
                     <div class="call-buttons">
+                        <span class="assigned-badge" data-floor="6" data-direction="up"></span>
                         <button class="btn-secondary" data-floor="6" data-direction="up">▲</button>
+                        <span class="assigned-badge" data-floor="6" data-direction="down"></span>
                         <button class="btn-secondary" data-floor="6" data-direction="down">▼</button>
                     </div>
                 </div>
                 <div class="floor">
                     <span>Våning 5</span>
                     <div class="call-buttons">
+                        <span class="assigned-badge" data-floor="5" data-direction="up"></span>
                         <button class="btn-secondary" data-floor="5" data-direction="up">▲</button>
+                        <span class="assigned-badge" data-floor="5" data-direction="down"></span>
                         <button class="btn-secondary" data-floor="5" data-direction="down">▼</button>
                     </div>
                 </div>
                 <div class="floor">
                     <span>Våning 4</span>
                     <div class="call-buttons">
+                        <span class="assigned-badge" data-floor="4" data-direction="up"></span>
                         <button class="btn-secondary" data-floor="4" data-direction="up">▲</button>
+                        <span class="assigned-badge" data-floor="4" data-direction="down"></span>
                         <button class="btn-secondary" data-floor="4" data-direction="down">▼</button>
                     </div>
                 </div>
                 <div class="floor">
                     <span>Våning 3</span>
                     <div class="call-buttons">
+                        <span class="assigned-badge" data-floor="3" data-direction="up"></span>
                         <button class="btn-secondary" data-floor="3" data-direction="up">▲</button>
+                        <span class="assigned-badge" data-floor="3" data-direction="down"></span>
                         <button class="btn-secondary" data-floor="3" data-direction="down">▼</button>
                     </div>
                 </div>
                 <div class="floor">
                     <span>Våning 2</span>
                     <div class="call-buttons">
+                        <span class="assigned-badge" data-floor="2" data-direction="up"></span>
                         <button class="btn-secondary" data-floor="2" data-direction="up">▲</button>
+                        <span class="assigned-badge" data-floor="2" data-direction="down"></span>
                         <button class="btn-secondary" data-floor="2" data-direction="down">▼</button>
                     </div>
                 </div>
                 <div class="floor">
                     <span>Våning 1</span>
                     <div class="call-buttons">
+                        <span class="assigned-badge" data-floor="1" data-direction="up"></span>
                         <button class="btn-secondary" data-floor="1" data-direction="up">▲</button>
                         <span class="call-placeholder"></span>
                     </div>
@@ -186,17 +224,18 @@
         </div>
     </div>
 
-    <!-- Hidden elevator shaft — script.js still manipulates these elements -->
+    <!-- Hidden elevator shafts — script.js mutates style/class on these so scene.js can mirror them. -->
     <div class="elevator-shaft-hidden">
         <div class="elevator-shaft">
-            <div id="elevator" class="elevator">
-                <div class="door door-left open"></div>
-                <div class="door door-right open"></div>
-                <svg class="person" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 100" width="20" height="40">
-                    <circle cx="25" cy="15" r="10" fill="white" />
-                    <polygon points="15,30 35,30 25,70" fill="white" />
-                    <polygon points="15,70 20,100 25,70 30,100 35,70" fill="white" />
-                </svg>
+            <div id="elevator-a" class="elevator" data-car="a">
+                <div class="door door-left open" data-car="a"></div>
+                <div class="door door-right open" data-car="a"></div>
+            </div>
+        </div>
+        <div class="elevator-shaft">
+            <div id="elevator-b" class="elevator" data-car="b">
+                <div class="door door-left open" data-car="b"></div>
+                <div class="door door-right open" data-car="b"></div>
             </div>
         </div>
     </div>
