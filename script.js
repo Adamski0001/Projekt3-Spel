@@ -239,11 +239,22 @@ async function processElevator(car) {
 
 // Kostnad = ungefärlig "tid tills hissen kan svara på (floor, dir)".
 // Lägre är bättre. Lätt straff på antal pågående stopp för load-balancing.
+const WRONG_SIDE_PENALTY = 2;
+
 function hallCost(car, floor, dir) {
   const dist = Math.abs(car.currentFloor - floor);
   const queuePenalty = 0.1 * queueSize(car);
 
-  if (car.direction === 'idle') return dist + queuePenalty;
+  if (car.direction === 'idle') {
+    // Idle-hissen är "naturligt placerad" om den kan ta sig till anropsvåningen
+    // i samma riktning som anropet. T.ex. down-anrop på vån 4 + hiss på vån 8
+    // = naturligt; hiss på vån 1 måste först åka uppåt och sedan vända.
+    const naturallyPositioned =
+      car.currentFloor === floor ||
+      (dir === 'down' && car.currentFloor >= floor) ||
+      (dir === 'up'   && car.currentFloor <= floor);
+    return dist + queuePenalty + (naturallyPositioned ? 0 : WRONG_SIDE_PENALTY);
+  }
 
   // Hissen är på väg och kommer passera (floor) i rätt riktning → idealt
   if (dir === 'up' && car.direction === 'up' && car.currentFloor <= floor) {
@@ -261,9 +272,20 @@ function dispatchHallCall(floor, dir) {
   if (hallAssignments[floor][dir]) return; // redan tilldelad
 
   const scored = cars.map(car => ({ car, cost: hallCost(car, floor, dir) }));
+  const wrongDir = dir === 'down' ? 'up' : 'down';
   scored.sort((a, b) => {
     if (a.cost !== b.cost) return a.cost - b.cost;
-    // Tie-break: idle först, sen mindre kö, sen hiss A
+    // Tie-break: föredra hissen vars läge matchar anropets riktning bäst.
+    // Down-anrop → högre hiss vinner; up-anrop → lägre. Endast om hissen kan
+    // svara naturligt (inte är på väg åt motsatt håll).
+    const aOk = a.car.direction !== wrongDir;
+    const bOk = b.car.direction !== wrongDir;
+    if (aOk && bOk && a.car.currentFloor !== b.car.currentFloor) {
+      return dir === 'down'
+        ? b.car.currentFloor - a.car.currentFloor
+        : a.car.currentFloor - b.car.currentFloor;
+    }
+    // Sen idle först, sen mindre kö, sen hiss A
     const aIdle = a.car.direction === 'idle' ? 0 : 1;
     const bIdle = b.car.direction === 'idle' ? 0 : 1;
     if (aIdle !== bIdle) return aIdle - bIdle;

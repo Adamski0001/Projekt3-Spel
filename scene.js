@@ -867,21 +867,31 @@
     return x * x * (3 - 2 * x);
   }
 
+  // En hiss "har jobb" om den rör sig, har stängda dörrar (initial close eller
+  // mellan stopp), eller om riktningsindikatorn visar ▲/▼. I steady-state idle
+  // är dörrarna öppna och indikatorn är '–' (en dash).
+  function carHasWork(c) {
+    return c.state.moving || !c.state.doorsOpen || c.state.floorDir !== '–';
+  }
+
   function updCamMode(t) {
-    var movingCars = carInstances.filter(function (c) { return c.state.moving; });
-    var anyMoving = movingCars.length > 0;
+    var busyCars = carInstances.filter(carHasWork);
 
     if (camState === CAM.INTRO_OVER || camState === CAM.INTRO_DESCEND) {
       carInstances.forEach(function (c) { c.state.prevDoorsOpen = c.state.doorsOpen; });
       return;
     }
 
-    // Per-car door / arrival edge detection
+    // Per-car door / arrival edge detection. DOOR-fokus får bara triggas när
+    // den här hissen är ensam upptagen — annars vill vi behålla bred framing
+    // av båda hissarna.
     for (var i = 0; i < carInstances.length; i++) {
       var c = carInstances[i];
+      var other = carInstances[1 - i];
+      var onlyThisBusy = !carHasWork(other);
 
       // Primary: car stopped, has dwelt ~0.2s, doors not yet open → focus the doors
-      if (c.state.stopPending && !c.state.moving && (t - c.state.stoppedAt) > 0.2 && camState !== CAM.DOOR) {
+      if (onlyThisBusy && c.state.stopPending && !c.state.moving && (t - c.state.stoppedAt) > 0.2 && camState !== CAM.DOOR) {
         camState = CAM.DOOR;
         doorCamStartTime = t;
         activeCar = c;
@@ -889,7 +899,7 @@
         c.state.stopPending = false;
       }
       // Fallback: door-open rising edge while idle
-      if (c.state.doorsOpen && !c.state.prevDoorsOpen && !c.state.moving && camState !== CAM.DOOR) {
+      if (onlyThisBusy && c.state.doorsOpen && !c.state.prevDoorsOpen && !c.state.moving && camState !== CAM.DOOR) {
         camState = CAM.DOOR;
         doorCamStartTime = t;
         activeCar = c;
@@ -903,13 +913,19 @@
       c.state.prevDoorsOpen = c.state.doorsOpen;
     }
 
-    if (anyMoving) {
-      if (camState !== CAM.TRACK) {
+    if (busyCars.length > 0) {
+      if (busyCars.length >= 2) {
+        // Båda upptagna ⇒ tvinga ut ur DOOR/IDLE och gå till bred TRACK.
+        if (camState !== CAM.TRACK) {
+          camState = CAM.TRACK;
+          idleTime = 0;
+        }
+      } else if (camState !== CAM.TRACK && camState !== CAM.DOOR) {
         camState = CAM.TRACK;
         idleTime = 0;
       }
-      // Lean toward the single moving car, or stay neutral if both are moving.
-      activeCar = movingCars.length === 1 ? movingCars[0] : null;
+      // Lean toward the single busy car, or stay neutral if both are busy.
+      activeCar = busyCars.length === 1 ? busyCars[0] : null;
     } else {
       if (camState === CAM.TRACK && idleTime > 2.0) {
         camState = CAM.IDLE;
@@ -971,30 +987,44 @@
         }
         break;
 
-      // IDLE: gentle sway framing both shafts. Pull back when the cars are
-      // far apart vertically so both are still visible.
+      // IDLE: båda hissar utan jobb → etableringsskott av hela schaktet.
+      // FOV 45° vertikalt → halva höjden 30/2 = 15 m kräver ~36 m avstånd.
+      // Camera y = lookAt y = SHAFT_H * 0.5 så vyn är horisontell utan tilt-loss.
       case CAM.IDLE:
-        var carDistY = Math.abs(stateA.curY - stateB.curY);
-        var swayAngle = 0.45 + Math.sin(t * 0.06) * 0.35;
-        var idleR = 11 + carDistY * 0.5 + Math.sin(t * 0.03) * 0.5;
+        var idleR = 38 + Math.sin(t * 0.04) * 1.0;
+        var idleAngle = 0.45 + Math.sin(t * 0.06) * 0.2;
         tp = new THREE.Vector3(
-          Math.sin(swayAngle) * idleR,
-          midY + 1.5 + Math.sin(t * 0.05) * 0.3,
-          Math.cos(swayAngle) * idleR
+          Math.sin(idleAngle) * idleR,
+          SHAFT_H * 0.5,
+          Math.cos(idleAngle) * idleR
         );
-        tl = new THREE.Vector3(0, midY, 0);
+        tl = new THREE.Vector3(0, SHAFT_H * 0.5, 0);
         lerpBase = 0.012;
         break;
 
-      // TRACK: lean toward the active car (or hold midpoint if both are moving)
+      // TRACK: en hiss upptagen → luta mot den; båda upptagna → bred framing
+      // som ryms båda vertikalt oavsett separation. Formeln är dimensionerad
+      // för att FOV 45° tar in halva separationen + buffer.
       case CAM.TRACK:
-        var leanX = activeCar ? carXActive * 0.5 : 0;
-        tp = new THREE.Vector3(
-          leanX + 5.5 + Math.sin(t * 0.2) * 0.4,
-          carYActive + 1.0,
-          6.5 + Math.cos(t * 0.15) * 0.3
-        );
-        tl = new THREE.Vector3(activeCar ? carXActive : 0, carYActive, 0);
+        if (activeCar) {
+          var leanX = carXActive * 0.5;
+          tp = new THREE.Vector3(
+            leanX + 5.5 + Math.sin(t * 0.2) * 0.4,
+            carYActive + 1.0,
+            6.5 + Math.cos(t * 0.15) * 0.3
+          );
+          tl = new THREE.Vector3(carXActive, carYActive, 0);
+        } else {
+          var carDistY = Math.abs(stateA.curY - stateB.curY);
+          var trackR = Math.max(12, 6 + carDistY * 1.3);
+          var trackAngle = 0.55 + Math.sin(t * 0.05) * 0.1;
+          tp = new THREE.Vector3(
+            Math.sin(trackAngle) * trackR,
+            midY + Math.sin(t * 0.07) * 0.2,
+            Math.cos(trackAngle) * trackR
+          );
+          tl = new THREE.Vector3(0, midY, 0);
+        }
         lerpBase = 0.018;
         break;
 
@@ -1048,9 +1078,9 @@
     }
     dust.geometry.attributes.position.needsUpdate = true;
 
-    // --- Idle timer (any car moving resets it) ---
-    var anyMoving = carInstances.some(function (c) { return c.state.moving; });
-    if (!anyMoving) {
+    // --- Idle timer (any car med pågående jobb resetar) ---
+    var anyBusy = carInstances.some(carHasWork);
+    if (!anyBusy) {
       idleTime += dt;
     } else {
       idleTime = 0;
